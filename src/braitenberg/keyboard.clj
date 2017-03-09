@@ -27,3 +27,8 @@
   (println "Current state: ")
   (println state)
   state)
+
+(defmethod key-pressed :default
+  [state key]
+  (println "Unknown key was pressed - " key)
+  state)
