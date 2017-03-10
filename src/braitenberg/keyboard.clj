@@ -28,6 +28,16 @@
   (println state)
   state)
 
+(defmethod key-pressed :t
+  [state _]
+  (println "Toggling sensor lines")
+  (update-in state [:display-radius] (partial not)))
+
+(defmethod key-pressed :a
+  [state _]
+  (println "Adding bot: ")
+  (update-in state [:vehicles] #(conj % (core/vehicle))))
+
 (defmethod key-pressed :default
   [state key]
   (println "Unknown key was pressed - " key)

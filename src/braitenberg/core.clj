@@ -1,6 +1,6 @@
 (ns braitenberg.core)
 
-(def initial-frame-rate 1)
+(def initial-frame-rate 60)
 
 (defn vehicle
   []
@@ -10,7 +10,8 @@
    :left-wheel-speed 0
    :right-wheel-speed 0
    :axle-width 0.02
-   :attitude (rand)})
+   :attitude (rand)
+   :detectable-radius 0.3})
 
 (defn default-vehicle
   []
@@ -20,11 +21,13 @@
    :left-wheel-speed 0
    :right-wheel-speed 0
    :axle-width 0.05
-   :attitude (rand)})
+   :attitude 0.25
+   :detectable-radius 0.3})
 
 (defn reset-state
   []
-  {:vehicles   (repeatedly 2 vehicle)
+  {:vehicles   (repeatedly 10 vehicle)
+   :display-radius true
    :frame-rate initial-frame-rate})
 
 

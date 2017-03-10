@@ -8,13 +8,11 @@
 (def height 500)
 
 (defn setup [initial-state]
-  ; Set color mode to HSB (HSV) instead of default RGB.
-  (q/color-mode :hsb)
   ; setup function returns initial state. It contains
   ; circle color and position.
   initial-state)
 
-(def max-speed 0.1)
+(def max-speed 0.05)
 
 (defn update-attitude
   [ attitude]
@@ -24,18 +22,14 @@
   [max-speed frame-rate speed]
   (/ (max (- max-speed) (min max-speed speed)) frame-rate))
 
-(defn to-degrees
-  [attitude]
-  (* 360.0 (if (neg? attitude) (+ 1 attitude) attitude)))
-
 (defn to-radians
   [attitude]
   (* 2 Math/PI attitude))
 
 (defn distance-vector
   [speed attitude]
-  [(* (Math/cos (to-degrees attitude)) speed)
-   (* (Math/tan (to-degrees attitude)) speed)])
+  [(* (Math/cos (to-radians attitude)) speed)
+   (* (Math/sin (to-radians attitude)) speed)])
 
 (defn attitude-change
   [left-speed right-speed axle-width]
@@ -50,16 +44,20 @@
         [new-x new-y]  (distance-vector combined-speed attitude)]
     [(+ x new-x) (+ y new-y) (+ attitude (attitude-change left-speed right-speed axle-width))]))
 
+(defn new-speed
+  [initial-speed]
+  (+ initial-speed (/ (- (rand) 0.5) 10)))
+
 (defn update-vehicle
   [frame-rate vehicle]
   (let [{:keys [x y left-wheel-speed right-wheel-speed attitude axle-width]} vehicle
         [new-x new-y new-attitude]                                (calc-new-position x y left-wheel-speed right-wheel-speed attitude axle-width)]
-    {:x new-x
-     :y new-y
-     :left-wheel-speed  (cap-speed max-speed frame-rate (+ left-wheel-speed (/ (- (rand) 0.5) 10)))
-     :right-wheel-speed (cap-speed max-speed frame-rate (+ right-wheel-speed (/ (- (rand) 0.5) 10)))
-     :axle-width        axle-width
-     :attitude          new-attitude}))
+    (merge vehicle
+           {:x new-x
+            :y new-y
+            :left-wheel-speed  (cap-speed max-speed frame-rate (new-speed left-wheel-speed))
+            :right-wheel-speed (cap-speed max-speed frame-rate (new-speed right-wheel-speed))
+            :attitude          new-attitude})))
 
 (defn update-vehicles
   [frame-rate vehicles]
@@ -72,21 +70,30 @@
   [coord max-value]
   (min max-value (max 0 (* coord max-value))))
 
-(defn draw-state [{:keys [vehicles] :as state}]
+(defn draw-state [{:keys [vehicles frame-rate display-radius] :as state}]
                                         ; Clear the sketch by filling it with light-grey color.
   (q/background 255)
-  (q/frame-rate (:frame-rate state))
+  (q/frame-rate frame-rate)
   (q/reset-matrix)
   (doseq [vehicle vehicles]
     (q/translate (+ (translate-coord (:x vehicle) width)
                     (/ (* width  (:axle-width vehicle)) 2.0)) 
                  (+ (translate-coord (:y vehicle) height)
                     (/ (* height  (:axle-width vehicle)) 2.0)))
-    (q/rotate (:attitude vehicle))
+    (q/rotate (to-radians (:attitude vehicle)))
+    (when display-radius
+      (do
+        (q/stroke 0 255 0)
+        (q/no-fill)
+        (q/ellipse 0 0 
+                   (translate-coord (:detectable-radius vehicle) width)
+                   (translate-coord (:detectable-radius vehicle) width))))
+    (q/stroke 0 0 0)
     (q/rect (- (/ (* width  (:axle-width vehicle)) 2.0))
             (- (/ (* height  (:axle-width vehicle)) 2.0))
             (* width  (:axle-width vehicle))
             (* height (:axle-width vehicle)))
+    
     (q/reset-matrix)))
 
 (defn run
