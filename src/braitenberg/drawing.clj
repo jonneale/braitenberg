@@ -7,7 +7,7 @@
 (def width 500)
 (def height 500)
 
-(def max-speed 0.5)
+(def max-speed 0.001)
 
 (defn update-attitude
   [attitude]
@@ -77,12 +77,12 @@
         [centre-x centre-y] (centre vehicle)]
     (q/no-fill)
     (q/stroke 255 0 0)
-    ;; (q/triangle (- 0 w centre-x) (- 0 w centre-y) 
-    ;;             (+ (- 0 centre-x) w) (- 0 w centre-y) 
-    ;;             (- centre-x) (- centre-y))
-    ;; (q/triangle (- 0 w (* 3 centre-x)) (- 0 w centre-y) 
-    ;;             (+ (- 0 (* 3 centre-x)) w) (- 0 w centre-y) 
-    ;;             (- 0 (* 3 centre-x)) (- centre-y))
+    (q/triangle (- 0 w centre-x) (- 0 w centre-y) 
+                (+ (- 0 centre-x) w) (- 0 w centre-y) 
+                (+ centre-x) (+ centre-y))
+    (q/triangle (- 0 w (* 3 centre-x)) (- 0 w centre-y) 
+                (+ (- 0 (* 3 centre-x)) w) (- 0 w centre-y) 
+                (- 0 centre-x) (+ centre-y))
     (q/stroke 0 255 0)
     (q/ellipse 0 0 
                (translate-coord (:detectable-radius vehicle) width)
@@ -93,7 +93,7 @@
   (q/frame-rate frame-rate)
   (doseq [vehicle vehicles]
     (let [[centre-x centre-y] (centre vehicle)]
-      (q/push-matrix)
+      ;; (q/push-matrix)
       (q/translate (+ (translate-coord (:x vehicle) width)
                       centre-x) 
                    (+ (translate-coord (:y vehicle) height)
@@ -105,7 +105,7 @@
               centre-y
               (* width  (:axle-width vehicle))
               (* height (:axle-width vehicle)))
-      (q/pop-matrix))))
+      #_(q/pop-matrix))))
 
 
 (defn run
