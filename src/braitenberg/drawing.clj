@@ -23,8 +23,8 @@
 
 (defn distance-vector
   [speed attitude]
-  [(* (Math/cos (to-radians attitude)) speed)
-   (* (Math/sin (to-radians attitude)) speed)])
+  [(* (Math/sin (to-radians attitude)) speed)
+   (- (* (Math/cos (to-radians attitude)) speed))])
 
 (defn attitude-change
   [left-speed right-speed axle-width]
@@ -36,7 +36,7 @@
 (defn calc-new-position
   [x y left-speed right-speed attitude axle-width]
   (let [combined-speed (/ (+ left-speed right-speed) 2)
-        [new-x new-y]  (distance-vector combined-speed attitude)]
+        [new-x new-y]  (distance-vector combined-speed attitude)]    
     [(+ x new-x) (+ y new-y) (+ attitude (attitude-change left-speed right-speed axle-width))]))
 
 (defn new-speed
@@ -93,19 +93,17 @@
   (q/frame-rate frame-rate)
   (doseq [vehicle vehicles]
     (let [[centre-x centre-y] (centre vehicle)]
-      ;; (q/push-matrix)
-      (q/translate (+ (translate-coord (:x vehicle) width)
-                      centre-x) 
-                   (+ (translate-coord (:y vehicle) height)
-                      centre-y))
-      (q/rotate (to-radians (:attitude vehicle)))
-      (when display-radius (display-sensors vehicle))
-      (q/stroke 0 0 0)
-      (q/rect centre-x
-              centre-y
-              (* width  (:axle-width vehicle))
-              (* height (:axle-width vehicle)))
-      #_(q/pop-matrix))))
+      (q/with-translation [(+ (translate-coord (:x vehicle) width)
+                              centre-x) 
+                           (+ (translate-coord (:y vehicle) height)
+                              centre-y)]
+        (q/with-rotation [(to-radians (:attitude vehicle))]
+          (when display-radius (display-sensors vehicle))
+          (q/stroke 0 0 0)
+          (q/rect centre-x
+                  centre-y
+                  (* width  (:axle-width vehicle))
+                  (* height (:axle-width vehicle))))))))
 
 
 (defn run
