@@ -7,15 +7,15 @@
 (def width 500)
 (def height 500)
 
-(def max-speed 0.001)
+(def max-speed 0.5)
 
-(defn update-attitude
-  [attitude]
-  attitude)
+(defn bound-position
+  [position]
+  (min (max 0 position) width))
 
 (defn cap-speed
   [max-speed frame-rate speed]
-  (/ (max (- max-speed) (min max-speed speed)) frame-rate))
+  (/ (max (- max-speed) (min max-speed speed)) (* frame-rate 50.0)))
 
 (defn to-radians
   [attitude]
@@ -34,24 +34,28 @@
     (- clockwise-rotation anticlockwise-rotation)))
 
 (defn calc-new-position
-  [x y left-speed right-speed attitude axle-width]
-  (let [combined-speed (/ (+ left-speed right-speed) 2)
+  [x y left-speed right-speed attitude axle-width frame-rate]
+  (let [[adjusted-left-speed adjusted-right-speed] (map (partial cap-speed max-speed frame-rate) [left-speed right-speed])
+        combined-speed (/ (+ adjusted-left-speed adjusted-right-speed) 2)
         [new-x new-y]  (distance-vector combined-speed attitude)]    
-    [(+ x new-x) (+ y new-y) (+ attitude (attitude-change left-speed right-speed axle-width))]))
+    [(+ x new-x) (+ y new-y) (+ attitude (attitude-change adjusted-left-speed adjusted-right-speed axle-width))]))
 
 (defn new-speed
   [initial-speed]
-  initial-speed)
+  (->> initial-speed
+       (+ (/ (- (rand) 0.5) 10))
+       (max (- max-speed))
+       (min max-speed)))
 
 (defn update-vehicle
   [frame-rate vehicle]
   (let [{:keys [x y left-wheel-speed right-wheel-speed attitude axle-width]} vehicle
-        [new-x new-y new-attitude]                                (calc-new-position x y left-wheel-speed right-wheel-speed attitude axle-width)]
+        [new-x new-y new-attitude]    (calc-new-position x y left-wheel-speed right-wheel-speed attitude axle-width frame-rate)]
     (merge vehicle
-           {:x new-x
-            :y new-y
-            :left-wheel-speed  left-wheel-speed
-            :right-wheel-speed right-wheel-speed
+           {:x (bound-position new-x)
+            :y (bound-position new-y)
+            :left-wheel-speed  (new-speed left-wheel-speed)
+            :right-wheel-speed (new-speed right-wheel-speed)
             :attitude          new-attitude})))
 
 (defn update-vehicles
