@@ -19,7 +19,7 @@
     (/ (max (- max-speed) (min max-speed speed)) (* frame-rate 50.0))))
 
 (defn new-speed
-  [sensors state id initial-speed]
+  [sensors state initial-speed]
   (let [updated-speed (reduce (fn [agg-speed sensor]
                                 (+ agg-speed (sensor state))) 
                               initial-speed sensors)]
@@ -35,8 +35,8 @@
     (merge vehicle
            {:x (bound-position new-x)
             :y (bound-position new-y)
-            :left-wheel-speed  (new-speed left-sensors state id left-wheel-speed)
-            :right-wheel-speed (new-speed right-sensors state id right-wheel-speed)
+            :left-wheel-speed  (new-speed left-sensors vehicle left-wheel-speed)
+            :right-wheel-speed (new-speed right-sensors vehicle right-wheel-speed)
             :attitude          new-attitude})))
 
 (defn update-vehicles
@@ -68,6 +68,9 @@
     (q/triangle (- 0 w (* 3 centre-x)) (- 0 w centre-y) 
                 (+ (- 0 (* 3 centre-x)) w) (- 0 w centre-y) 
                 (- 0 centre-x) (+ centre-y))
+    (q/stroke 0 0 255)
+    (apply q/triangle (flatten (core/sensed-area :front-left vehicle)))
+    (apply q/triangle (flatten (core/sensed-area :front-right vehicle)))
     (q/stroke 0 255 0)
     (q/ellipse 0 0 
                (translate-coord (:detectable-radius vehicle) width)

@@ -30,14 +30,6 @@
   [id-to-find {:keys [id]}]
   (= id id-to-find))
 
-(defn triangle-points
-  [x y attitude sensor-width]
-  [[x y]
-   [(- x (/ sensor-width 2))
-    (+ y sensor-width)]
-   [(+ x (/ sensor-width 2))
-    (+ y sensor-width)]])
-
 (defn negative?
   [[x1 y1] [x2 y2] [x3 y3]]
   (neg? (- (* (- x1 x3)
@@ -91,31 +83,51 @@
         [new-x new-y]  (calculate-change-in-position combined-speed attitude)]
     [(+ x new-x) (+ y new-y) (+ attitude (attitude-change adjusted-left-speed adjusted-right-speed axle-width))]))
 
-(defmulti position
-  (fn [placement]
+(defn triangle-points
+  [x y attitude sensor-width]
+  [[x y]
+   ])
+
+(defmulti sensed-area-offsets
+  (fn [placement attitude sensor-width]
     placement))
 
-(defmethod position :front-left
-  [_]
-  (fn [x y atttitude axle-width]
-    [(- x (/ axle-width 2.0))
-     (- y (/ axle-width 2.0))]
-    [x y]))
+(defmethod sensed-area-offsets :front-left
+  [_ attitude axle-width]
+  (rotate-around-point
+   attitude
+   [0 0]
+   [(- (/ axle-width 2.0))
+    (- (/ axle-width 2.0))]))
 
-(defmethod position :front-right
-  [_]
-  (fn [{:keys [x y attitude axle-width]}]
-    [(+ x (/ axle-width 2.0))
-     (- y (/ axle-width 2.0))]
-    [x y]))
+(defmethod sensed-area-offsets :front-right
+  [_ attitude axle-width]
+  (rotate-around-point
+   attitude
+   [0 0]
+   [(/ axle-width 2.0)
+    (- (/ axle-width 2.0))]))
 
+(defn sensed-area
+  [position {:keys [x y attitude axle-width sensor-width]}]
+  (let [[offset-x offset-y] (sensed-area-offsets position attitude axle-width)
+        sensor-origin       [(+ offset-x x) (+ offset-y y)]
+        [origin-x origin-y] sensor-origin]
+    [sensor-origin
+     (rotate-around-point attitude sensor-origin [(- origin-x (/ sensor-width 2))
+                                                        (+ origin-y sensor-width)])
+
+
+
+     (rotate-around-point attitude sensor-origin [(+ origin-x (/ sensor-width 2))
+                                                  (+ origin-y sensor-width)])]))
 
 (defn attractor
-  [id position-fn]
+  [id position]
   (fn
     [state]
     (let [other-vehicles (remove (partial is-this-vehicle? id) (:vehicles state))]
-      (if (some (partial occludes? (position-fn state)) other-vehicles)
+      (if (some (partial occludes? (sensed-area position state)) other-vehicles)
         (do (println "Attracted!")
             1.0)
         0))))
@@ -133,12 +145,8 @@
      :y y
      :left-wheel-speed  -0.5
      :right-wheel-speed -0.3
-     :left-sensors  [(make-sensor id
-                                  (sensor-area :front-left x y axle-width sensor-width attitude)
-                                  attractor)]
-     :right-sensors [(make-sensor id
-                                  (sensor-area :front-right x y axle-width sensor-width attitude)
-                                  attractor)]
+     :left-sensors  [(attractor id :front-left)]
+     :right-sensors [(attractor id :front-right)]
      :axle-width axle-width
      :attitude   attitude
      :sensor-width sensor-width
@@ -158,12 +166,8 @@
      :y y
      :left-wheel-speed  0.5
      :right-wheel-speed 0.5
-     :left-sensors  [(make-sensor id
-                                  (sensor-area :front-left x y axle-width sensor-width attitude)
-                                  attractor)]
-     :right-sensors [(make-sensor id
-                                  (sensor-area :front-right x y axle-width sensor-width attitude)
-                                  attractor)]
+     :left-sensors  [(attractor id :front-left)]
+     :right-sensors [(attractor id :front-right)]
      :axle-width axle-width
      :attitude   attitude
      :sensor-width sensor-width
@@ -182,10 +186,8 @@
      :y y
      :left-wheel-speed  0.5
      :right-wheel-speed 0.5
-     :left-sensors  [(attractor id (position :front-left))]
-     :right-sensors [(make-sensor id
-                                  (sensor-area :front-right x y axle-width sensor-width attitude)
-                                  attractor)]
+     :left-sensors  [(attractor id :front-left)]
+     :right-sensors [(attractor id :front-right)]
      :axle-width axle-width
      :attitude   attitude
      :sensor-width sensor-width

@@ -45,3 +45,6 @@
   (is (close-enough? [0.0 -0.1] (sut/calculate-change-in-position 0.1 0.5)))
   (is (close-enough? [0.1 0.0] (sut/calculate-change-in-position 0.1 0.25)))
   (is (close-enough? [0.07071 -0.07071] (sut/calculate-change-in-position 0.1 0.125))))
+
+(deftest sensed-area-is-triangle-extending-from-sensor-origin
+  (is (= [[-2.0 -2.0] [-7.0 8.0] [3.0 8.0]] (sut/sensed-area :front-left 10 {:x 0 :y 0 :attitude 0 :axle-width 4}))))
