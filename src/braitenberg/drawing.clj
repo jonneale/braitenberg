@@ -56,21 +56,34 @@
   [coord max-value]
   (min max-value (max 0 (* coord max-value))))
 
+(defn- to-coord
+  [width height [x y]]
+  [(translate-coord x width)
+   (translate-coord y height)])
+
 (defn display-sensors
   [vehicle]
+  (println (apply str (repeat 30 "*")))
+  (println (mapcat (partial to-coord width height) (core/sensed-area :front-left vehicle)))
+  (println (mapcat (partial to-coord width height) (core/sensed-area :front-right vehicle)))
+  (println (apply str (repeat 30 "*")))
   (let [w (translate-coord (:sensor-width vehicle) width)
         [centre-x centre-y] (centre vehicle)]
     (q/no-fill)
-    (q/stroke 255 0 0)
-    (q/triangle (- 0 w centre-x) (- 0 w centre-y) 
-                (+ (- 0 centre-x) w) (- 0 w centre-y) 
-                (+ centre-x) (+ centre-y))
-    (q/triangle (- 0 w (* 3 centre-x)) (- 0 w centre-y) 
-                (+ (- 0 (* 3 centre-x)) w) (- 0 w centre-y) 
-                (- 0 centre-x) (+ centre-y))
+    #_    (q/stroke 255 0 0)
+    #_    (q/triangle (- 0 w centre-x) (- 0 w centre-y) 
+                      (+ (- 0 centre-x) w) (- 0 w centre-y) 
+                      (+ centre-x) (+ centre-y))
+    #_    (q/triangle (- 0 w (* 3 centre-x)) (- 0 w centre-y) 
+                      (+ (- 0 (* 3 centre-x)) w) (- 0 w centre-y) 
+                      (- 0 centre-x) (+ centre-y))
     (q/stroke 0 0 255)
-    (apply q/triangle (flatten (core/sensed-area :front-left vehicle)))
-    (apply q/triangle (flatten (core/sensed-area :front-right vehicle)))
+    (apply q/triangle (mapcat (partial to-coord width height) (core/sensed-area :front-left vehicle)))
+    (let [text-coords (map (partial + 30) (first (core/sensed-area :front-left vehicle)))]
+      (q/text (apply str (interpose "," (map (partial to-coord width height) (core/sensed-area :front-left vehicle))))
+              (first text-coords)
+              (last text-coords)))
+    (apply q/triangle (mapcat (partial to-coord width height) (core/sensed-area :front-right vehicle)))
     (q/stroke 0 255 0)
     (q/ellipse 0 0 
                (translate-coord (:detectable-radius vehicle) width)
@@ -121,7 +134,7 @@
      :update update-state
      :draw   draw-state
      :features [:keep-on-top]
-     :middleware [m/fun-mode]
+     :middleware [m/fun-mode m/pause-on-error]
      :key-pressed keyboard/key-pressed)))
 
 
