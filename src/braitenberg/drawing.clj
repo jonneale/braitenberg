@@ -63,26 +63,21 @@
 
 (defn display-sensors
   [vehicle]
-  (println (apply str (repeat 30 "*")))
-  (println (mapcat (partial to-coord width height) (core/sensed-area :front-left vehicle)))
-  (println (mapcat (partial to-coord width height) (core/sensed-area :front-right vehicle)))
-  (println (apply str (repeat 30 "*")))
   (let [w (translate-coord (:sensor-width vehicle) width)
         [centre-x centre-y] (centre vehicle)]
+    (q/triangle 0.5 0.1 0.6 0.7 0.4 0.7)
     (q/no-fill)
-    #_    (q/stroke 255 0 0)
-    #_    (q/triangle (- 0 w centre-x) (- 0 w centre-y) 
-                      (+ (- 0 centre-x) w) (- 0 w centre-y) 
-                      (+ centre-x) (+ centre-y))
-    #_    (q/triangle (- 0 w (* 3 centre-x)) (- 0 w centre-y) 
-                      (+ (- 0 (* 3 centre-x)) w) (- 0 w centre-y) 
-                      (- 0 centre-x) (+ centre-y))
     (q/stroke 0 0 255)
     (apply q/triangle (mapcat (partial to-coord width height) (core/sensed-area :front-left vehicle)))
     (let [text-coords (map (partial + 30) (first (core/sensed-area :front-left vehicle)))]
-      (q/text (apply str (interpose "," (map (partial to-coord width height) (core/sensed-area :front-left vehicle))))
-              (first text-coords)
-              (last text-coords)))
+      (q/fill 128 128 128)
+      (q/text (apply str (interpose "," (concat ["Sensor coords - "] (core/sensed-area :front-left vehicle))))
+              centre-x
+              centre-y
+              #_(first text-coords)
+              #_(last text-coords))
+      (q/no-fill))
+
     (apply q/triangle (mapcat (partial to-coord width height) (core/sensed-area :front-right vehicle)))
     (q/stroke 0 255 0)
     (q/ellipse 0 0 
@@ -108,19 +103,16 @@
   (q/background 255)
   (q/frame-rate frame-rate)
   (doseq [vehicle vehicles]
-    (let [[centre-x centre-y] (centre vehicle)]
-      (q/with-translation [(+ (translate-coord (:x vehicle) width)
-                              centre-x) 
-                           (+ (translate-coord (:y vehicle) height)
-                              centre-y)]
-        (q/with-rotation [(core/to-radians (:attitude vehicle))]
-          (when display-radius (display-sensors vehicle))
-          (when display-radius (display-position vehicle))
-          (q/stroke 0 0 0)
-          (q/rect centre-x
-                  centre-y
-                  (* width  (:axle-width vehicle))
-                  (* height (:axle-width vehicle))))))))
+    (let [#_[centre-x centre-y] #_(centre vehicle)
+          [centre-x centre-y]   (to-coord width height [(:x vehicle) (:y vehicle)])]
+      (when display-radius (display-sensors vehicle))
+      (when display-radius (display-position vehicle))
+      (q/with-rotation [(core/to-radians (:attitude vehicle))]
+        (q/stroke 0 0 0)
+        (q/rect centre-x
+                centre-y
+                (* width  (:axle-width vehicle))
+                (* height (:axle-width vehicle)))))))
 
 
 (defn run
