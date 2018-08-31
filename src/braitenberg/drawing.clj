@@ -19,9 +19,9 @@
     (/ (max (- max-speed) (min max-speed speed)) (* frame-rate 50.0))))
 
 (defn new-speed
-  [sensors state initial-speed]
+  [sensors vehicle state initial-speed]
   (let [updated-speed (reduce (fn [agg-speed sensor]
-                                (+ agg-speed (sensor state))) 
+                                (+ agg-speed (sensor vehicle state))) 
                               initial-speed sensors)]
     (->> updated-speed
          (max (- max-speed))
@@ -35,8 +35,8 @@
     (merge vehicle
            {:x (bound-position new-x)
             :y (bound-position new-y)
-            :left-wheel-speed  (new-speed left-sensors vehicle left-wheel-speed)
-            :right-wheel-speed (new-speed right-sensors vehicle right-wheel-speed)
+            :left-wheel-speed  (new-speed left-sensors vehicle state left-wheel-speed)
+            :right-wheel-speed (new-speed right-sensors vehicle state right-wheel-speed)
             :attitude          new-attitude})))
 
 (defn update-vehicles

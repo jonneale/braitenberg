@@ -108,6 +108,7 @@
    [(/ axle-width 2.0)
     (- (/ axle-width 2.0))]))
 
+;; Sensors point backwards!
 (defn sensed-area
   [position {:keys [x y attitude axle-width sensor-width]}]
   (let [[offset-x offset-y] (sensed-area-offsets position attitude axle-width)
@@ -125,9 +126,9 @@
 (defn attractor
   [id position]
   (fn
-    [state]
+    [vehicle state]
     (let [other-vehicles (remove (partial is-this-vehicle? id) (:vehicles state))]
-      (if (some (partial occludes? (sensed-area position state)) other-vehicles)
+      (if (some (partial occludes? (sensed-area position vehicle)) other-vehicles)
         (do (println "Attracted!")
             1.0)
         0))))
@@ -159,13 +160,13 @@
         x 0.5
         y 1
         id (swap! id-counter inc)
-        attitude 0
+        attitude 0.5
         sensor-width 0.2]
     {:id id
      :x x
      :y y
-     :left-wheel-speed  0.5
-     :right-wheel-speed 0.5
+     :left-wheel-speed  -0.5
+     :right-wheel-speed -0.5
      :left-sensors  [(attractor id :front-left)]
      :right-sensors [(attractor id :front-right)]
      :axle-width axle-width
@@ -179,13 +180,13 @@
         x 0.5
         y 0
         id (swap! id-counter inc)
-        attitude 0.5
+        attitude 0
         sensor-width 0.2]
     {:id id
      :x x
      :y y
-     :left-wheel-speed  0.5
-     :right-wheel-speed 0.5
+     :left-wheel-speed  -0.5
+     :right-wheel-speed -0.5
      :left-sensors  [(attractor id :front-left)]
      :right-sensors [(attractor id :front-right)]
      :axle-width axle-width
