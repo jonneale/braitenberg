@@ -56,7 +56,7 @@
   [coord max-value]
   (min max-value (max 0 (* coord max-value))))
 
-(defn- to-coord
+(defn to-coord
   [width height [x y]]
   [(translate-coord x width)
    (translate-coord y height)])
@@ -69,15 +69,6 @@
     (q/no-fill)
     (q/stroke 0 0 255)
     (apply q/triangle (mapcat (partial to-coord width height) (core/sensed-area :front-left vehicle)))
-    (let [text-coords (map (partial + 30) (first (core/sensed-area :front-left vehicle)))]
-      (q/fill 128 128 128)
-      (q/text (apply str (interpose "," (concat ["Sensor coords - "] (core/sensed-area :front-left vehicle))))
-              centre-x
-              centre-y
-              #_(first text-coords)
-              #_(last text-coords))
-      (q/no-fill))
-
     (apply q/triangle (mapcat (partial to-coord width height) (core/sensed-area :front-right vehicle)))
     (q/stroke 0 255 0)
     (q/ellipse 0 0 
@@ -88,31 +79,14 @@
   [n]
   (/ (int (* 100 n)) 100.0))
 
-(defn display-position
-  [vehicle]
-  (let [w (translate-coord (:sensor-width vehicle) width)
-        [centre-x centre-y] (centre vehicle)]
-    (q/fill 128 128 128)
-    (q/text (str "["  (round (:x vehicle)) "," (round (:y vehicle)) "]") centre-x centre-y)
-    (q/text (str (:attitude vehicle)) centre-x (+ 20 centre-y))
-    (q/text (str (:left-wheel-speed vehicle)) (- centre-x 20) (+ 10 centre-y))
-    (q/text (str (:right-wheel-speed vehicle)) (+ centre-x 20) (+ 10 centre-y))
-    (q/no-fill)))
-
 (defn draw-state [{:keys [vehicles frame-rate display-radius] :as state}]
   (q/background 255)
   (q/frame-rate frame-rate)
   (doseq [vehicle vehicles]
-    (let [#_[centre-x centre-y] #_(centre vehicle)
-          [centre-x centre-y]   (to-coord width height [(:x vehicle) (:y vehicle)])]
-      (when display-radius (display-sensors vehicle))
-      (when display-radius (display-position vehicle))
-      (q/with-rotation [(core/to-radians (:attitude vehicle))]
-        (q/stroke 0 0 0)
-        (q/rect centre-x
-                centre-y
-                (* width  (:axle-width vehicle))
-                (* height (:axle-width vehicle)))))))
+    (let [[centre-x centre-y]   (to-coord width height [(:x vehicle) (:y vehicle)])]
+      (when display-radius (display-sensors vehicle))      
+      (q/stroke 255 0 0)
+      (apply q/quad (mapcat (partial to-coord width height) (apply core/square-bounding-box ((juxt :x :y :attitude :axle-width) vehicle)))))))
 
 
 (defn run

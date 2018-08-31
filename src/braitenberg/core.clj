@@ -43,8 +43,8 @@
     (map (partial rotate-around-point attitude [x y]) 
          [[(- x modifier) (+ y modifier)]
           [(+ x modifier) (+ y modifier)]
-          [(- x modifier) (- y modifier)]
-          [(+ x modifier) (- y modifier)]])))
+          [(+ x modifier) (- y modifier)]
+          [(- x modifier) (- y modifier)]])))
 
 (defn point-occludes?
   [[v1 v2 v3] [x y]]
