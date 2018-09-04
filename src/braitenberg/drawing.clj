@@ -70,10 +70,7 @@
     (q/stroke 0 0 255)
     (apply q/triangle (mapcat (partial to-coord width height) (core/sensed-area :front-left vehicle)))
     (apply q/triangle (mapcat (partial to-coord width height) (core/sensed-area :front-right vehicle)))
-    (q/stroke 0 255 0)
-    (q/ellipse 0 0 
-               (translate-coord (:detectable-radius vehicle) width)
-               (translate-coord (:detectable-radius vehicle) width))))
+    (q/stroke 0 255 0)))
 
 (defn round
   [n]

@@ -83,11 +83,6 @@
         [new-x new-y]  (calculate-change-in-position combined-speed attitude)]
     [(+ x new-x) (+ y new-y) (+ attitude (attitude-change adjusted-left-speed adjusted-right-speed axle-width))]))
 
-(defn triangle-points
-  [x y attitude sensor-width]
-  [[x y]
-   ])
-
 (defmulti sensed-area-offsets
   (fn [placement attitude sensor-width]
     placement))
@@ -98,7 +93,7 @@
    attitude
    [0 0]
    [(- (/ axle-width 2.0))
-    (- (/ axle-width 2.0))]))
+    (+ (/ axle-width 2.0))]))
 
 (defmethod sensed-area-offsets :front-right
   [_ attitude axle-width]
@@ -106,9 +101,8 @@
    attitude
    [0 0]
    [(/ axle-width 2.0)
-    (- (/ axle-width 2.0))]))
+    (+ (/ axle-width 2.0))]))
 
-;; Sensors point backwards!
 (defn sensed-area
   [position {:keys [x y attitude axle-width sensor-width]}]
   (let [[offset-x offset-y] (sensed-area-offsets position attitude axle-width)
@@ -116,7 +110,7 @@
         [origin-x origin-y] sensor-origin]
     [sensor-origin
      (rotate-around-point attitude sensor-origin [(- origin-x (/ sensor-width 2))
-                                                        (+ origin-y sensor-width)])
+                                                  (+ origin-y sensor-width)])
 
 
 
@@ -130,7 +124,7 @@
     (let [other-vehicles (remove (partial is-this-vehicle? id) (:vehicles state))]
       (if (some (partial occludes? (sensed-area position vehicle)) other-vehicles)
         (do (println "Attracted!")
-            1.0)
+            -0.1)
         0))))
 
 (defn vehicle
@@ -140,7 +134,7 @@
         y (rand)
         id (swap! id-counter inc)
         attitude (rand)
-        sensor-width 0.2]
+        sensor-width 0.4]
     {:id id
      :x x
      :y y
@@ -150,8 +144,7 @@
      :right-sensors [(attractor id :front-right)]
      :axle-width axle-width
      :attitude   attitude
-     :sensor-width sensor-width
-     :detectable-radius 0.3}))
+     :sensor-width sensor-width}))
 
 
 (defn vehicle-1
@@ -161,7 +154,7 @@
         y 1
         id (swap! id-counter inc)
         attitude 0.5
-        sensor-width 0.2]
+        sensor-width 1.0]
     {:id id
      :x x
      :y y
@@ -171,8 +164,7 @@
      :right-sensors [(attractor id :front-right)]
      :axle-width axle-width
      :attitude   attitude
-     :sensor-width sensor-width
-     :detectable-radius 0.3}))
+     :sensor-width sensor-width}))
 
 (defn vehicle-2
   []
@@ -181,7 +173,7 @@
         y 0
         id (swap! id-counter inc)
         attitude 0
-        sensor-width 0.2]
+        sensor-width 1.0]
     {:id id
      :x x
      :y y
@@ -191,8 +183,7 @@
      :right-sensors [(attractor id :front-right)]
      :axle-width axle-width
      :attitude   attitude
-     :sensor-width sensor-width
-     :detectable-radius 0.3}))
+     :sensor-width sensor-width}))
 
 
 (defn default-vehicle
@@ -207,8 +198,7 @@
    :right-sensors [wander]
    :axle-width 0.05
    :attitude 0.125
-   :sensor-width 0.1
-   :detectable-radius 0.3})
+   :sensor-width 0.1})
 
 (defn reset-state
   []
