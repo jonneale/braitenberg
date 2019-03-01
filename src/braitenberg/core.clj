@@ -1,6 +1,6 @@
 (ns braitenberg.core)
 
-(def initial-frame-rate 1)
+(def initial-frame-rate 60)
 
 (defn to-radians
   [attitude]
@@ -104,106 +104,113 @@
     (+ (/ axle-width 2.0))]))
 
 (defn sensed-area
-  [position {:keys [x y attitude axle-width sensor-width]}]
+  [sensor-width sensor-height position {:keys [x y attitude axle-width]}]
   (let [[offset-x offset-y] (sensed-area-offsets position attitude axle-width)
         sensor-origin       [(+ offset-x x) (+ offset-y y)]
         [origin-x origin-y] sensor-origin]
     [sensor-origin
      (rotate-around-point attitude sensor-origin [(- origin-x (/ sensor-width 2))
-                                                  (+ origin-y sensor-width)])
-
-
-
+                                                  (+ origin-y sensor-height)])
      (rotate-around-point attitude sensor-origin [(+ origin-x (/ sensor-width 2))
-                                                  (+ origin-y sensor-width)])]))
+                                                  (+ origin-y sensor-height)])]))
+
+(defn distance
+  [v1 v2]
+  (Math/sqrt (+ (square (- (:x v1)
+                           (:x v2)))
+                (square (- (:y v1)
+                           (:y v2))))))
+
+(defn wander
+  [position & [sensor-width sensor-height]]
+  (let [width  (or sensor-width 0)
+        height (or sensor-height 0)
+        rotate-every (* initial-frame-rate (rand-nth (range 1 20)))]
+    {:position position
+     :width    width
+     :height   height
+     :color    [0 255 0]
+     :fn       (fn [vehicle state current-speed]
+                 (if (zero? (rem (state :ticks) rotate-every))
+                   (/ (- (rand) 1.0) 10.0)
+                   current-speed))}))
 
 (defn attractor
-  [id position]
-  (fn
-    [vehicle state]
-    (let [other-vehicles (remove (partial is-this-vehicle? id) (:vehicles state))]
-      (if (some (partial occludes? (sensed-area position vehicle)) other-vehicles)
-        (do (println "Attracted!")
-            -0.1)
-        0))))
+  [id position & [sensor-width sensor-height]]
+  (let [width  (or sensor-width 0.7)
+        height (or sensor-height 0.3)]
+    {:position position
+     :width    width
+     :height   height
+     :color    [255 0 0]
+     :fn       (fn [vehicle state _]
+                 (let [other-vehicles  (remove (partial is-this-vehicle? id) (:vehicles state))
+                       sensed-vehicles (filter (partial occludes? (sensed-area width height position vehicle)) other-vehicles)]
+                   (if (seq sensed-vehicles)
+                     (- (reduce (fn [agg-attraction other-vehicle]
+                                  (+ agg-attraction 1000))
+                                0 sensed-vehicles))
+                     0)))}))
+
+
+#_(/ 1 (square
+      (distance vehicle other-vehicle)))
 
 (defn vehicle
   []
-  (let [axle-width 0.02
+  (let [axle-width 0.1
         x (rand)
         y (rand)
-        id (swap! id-counter inc)
-        attitude (rand)
-        sensor-width 0.4]
-    {:id id
-     :x x
+        attitude (rand)]
+    {:x x
      :y y
-     :left-wheel-speed  -0.5
-     :right-wheel-speed -0.3
-     :left-sensors  [(attractor id :front-left)]
-     :right-sensors [(attractor id :front-right)]
+     :left-wheel-speed  (rand)
+     :right-wheel-speed (rand)
      :axle-width axle-width
-     :attitude   attitude
-     :sensor-width sensor-width}))
+     :color [255 255 255]
+     :attitude   attitude}))
 
 
 (defn vehicle-1
   []
-  (let [axle-width 0.02
-        x 0.5
-        y 1
+  (let [x 0.5
+        y 0.45
         id (swap! id-counter inc)
-        attitude 0.5
-        sensor-width 1.0]
-    {:id id
-     :x x
-     :y y
-     :left-wheel-speed  -0.5
-     :right-wheel-speed -0.5
-     :left-sensors  [(attractor id :front-left)]
-     :right-sensors [(attractor id :front-right)]
-     :axle-width axle-width
-     :attitude   attitude
-     :sensor-width sensor-width}))
+        attitude 0.95
+        sensor-width 0.5]
+    (merge (vehicle)
+           {:id  id
+            :x x
+            :y y
+            :left-wheel-speed  0
+            :right-wheel-speed 0
+            :left-wheel-sensors  [(wander :front-right) (attractor id :front-right)]
+            :right-wheel-sensors [(wander :front-left) (attractor id :front-left)]
+            :color [0 255 0]
+            :attitude   attitude})))
 
 (defn vehicle-2
   []
-  (let [axle-width 0.02
-        x 0.5
-        y 0
+  (let [x 0.5
+        y 0.8
         id (swap! id-counter inc)
         attitude 0
-        sensor-width 1.0]
-    {:id id
-     :x x
-     :y y
-     :left-wheel-speed  -0.5
-     :right-wheel-speed -0.5
-     :left-sensors  [(attractor id :front-left)]
-     :right-sensors [(attractor id :front-right)]
-     :axle-width axle-width
-     :attitude   attitude
-     :sensor-width sensor-width}))
-
-
-(defn default-vehicle
-  []
-  ;; position can range from 0 to 1
-  {:id 1
-   :x 0.5
-   :y 0.5
-   :left-wheel-speed 0
-   :right-wheel-speed 0
-   :left-sensors  [wander]
-   :right-sensors [wander]
-   :axle-width 0.05
-   :attitude 0.125
-   :sensor-width 0.1})
+        sensor-width 0.5]
+    (merge (vehicle)
+           {:id id
+            :x x
+            :y y
+            :left-wheel-speed  0
+            :right-wheel-speed 0
+            :left-wheel-sensors  [(wander :front-left)  (attractor id :front-left)]
+            :right-wheel-sensors [(wander :front-right) (attractor id :front-right)]
+            :color [0 0 255]
+            :attitude   attitude})))
 
 (defn reset-state
   []
-  {:vehicles   [(vehicle-1) (vehicle-2)]
+  {:vehicles   []
    :display-radius true
+   :ticks      0
    :frame-rate initial-frame-rate})
-
 

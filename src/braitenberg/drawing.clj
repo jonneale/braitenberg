@@ -21,8 +21,8 @@
 (defn new-speed
   [sensors vehicle state initial-speed]
   (let [updated-speed (reduce (fn [agg-speed sensor]
-                                (+ agg-speed (sensor vehicle state))) 
-                              initial-speed sensors)]
+                                (+ agg-speed ((:fn sensor) vehicle state initial-speed))) 
+                              0 sensors)]
     (->> updated-speed
          (max (- max-speed))
          (min max-speed))))
@@ -30,13 +30,13 @@
 (defn update-vehicle
   [state vehicle]
   (let [frame-rate (:frame-rate state)
-        {:keys [x y left-wheel-speed right-wheel-speed attitude axle-width left-sensors right-sensors id]} vehicle
+        {:keys [x y left-wheel-speed right-wheel-speed attitude axle-width left-wheel-sensors right-wheel-sensors id]} vehicle
         [new-x new-y new-attitude]    (core/calc-new-position x y left-wheel-speed right-wheel-speed attitude axle-width (cap-speed-fn frame-rate max-speed))]
     (merge vehicle
            {:x (bound-position new-x)
             :y (bound-position new-y)
-            :left-wheel-speed  (new-speed left-sensors vehicle state left-wheel-speed)
-            :right-wheel-speed (new-speed right-sensors vehicle state right-wheel-speed)
+            :left-wheel-speed  (new-speed left-wheel-sensors vehicle state left-wheel-speed)
+            :right-wheel-speed (new-speed right-wheel-sensors vehicle state right-wheel-speed)
             :attitude          new-attitude})))
 
 (defn update-vehicles
@@ -45,7 +45,9 @@
 
 (defn update-state 
   [state]
-  (update-in state [:vehicles] (partial update-vehicles state)))
+  (-> state
+      (update-in [:vehicles] (partial update-vehicles state))
+      (update-in [:ticks] inc)))
 
 (defn centre 
   [vehicle]
@@ -63,14 +65,16 @@
 
 (defn display-sensors
   [vehicle]
-  (let [w (translate-coord (:sensor-width vehicle) width)
-        [centre-x centre-y] (centre vehicle)]
-    (q/triangle 0.5 0.1 0.6 0.7 0.4 0.7)
+  (let [[centre-x centre-y] (centre vehicle)]
     (q/no-fill)
-    (q/stroke 0 0 255)
-    (apply q/triangle (mapcat (partial to-coord width height) (core/sensed-area :front-left vehicle)))
-    (apply q/triangle (mapcat (partial to-coord width height) (core/sensed-area :front-right vehicle)))
-    (q/stroke 0 255 0)))
+    (let [sensors (mapcat vehicle [:left-wheel-sensors :right-wheel-sensors])]
+      (doseq [sensor sensors]
+        (apply q/stroke (:color sensor))
+        (apply q/triangle (mapcat (partial to-coord width height)
+                                  (core/sensed-area (:width sensor)
+                                                    (:height sensor)
+                                                    (:position sensor)
+                                                    vehicle)))))))
 
 (defn round
   [n]
@@ -82,8 +86,11 @@
   (doseq [vehicle vehicles]
     (let [[centre-x centre-y]   (to-coord width height [(:x vehicle) (:y vehicle)])]
       (when display-radius (display-sensors vehicle))      
-      (q/stroke 255 0 0)
-      (apply q/quad (mapcat (partial to-coord width height) (apply core/square-bounding-box ((juxt :x :y :attitude :axle-width) vehicle)))))))
+      (apply q/stroke (vehicle :color))
+      (apply q/quad (mapcat (partial to-coord width height) (apply core/square-bounding-box ((juxt :x :y :attitude :axle-width) vehicle))))
+      (q/fill 0 0 0)
+      (q/text (str "ID: " (:id vehicle)) (+ 10 centre-x) (+ 10 centre-y))
+      (q/no-fill))))
 
 
 (defn run

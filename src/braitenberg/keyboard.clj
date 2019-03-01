@@ -38,6 +38,16 @@
   (println "Adding bot: ")
   (update-in state [:vehicles] #(conj % (core/vehicle))))
 
+(defmethod key-pressed :1
+  [state _]
+  (println "Adding bot: ")
+  (update-in state [:vehicles] #(conj % (core/vehicle-1))))
+
+(defmethod key-pressed :2
+  [state _]
+  (println "Adding bot: ")
+  (update-in state [:vehicles] #(conj % (core/vehicle-2))))
+
 (defmethod key-pressed :default
   [state key]
   (println "Unknown key was pressed - " key)
